@@ -1,0 +1,793 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>定投钝化辅助计算器 | 纯手动+自动补充</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #f0f2f5;
+            font-family: 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+            margin: 0;
+            padding: 20px 16px 40px;
+            color: #1e293b;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .card {
+            background: white;
+            border-radius: 28px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.05), 0 2px 6px rgba(0, 0, 0, 0.03);
+            padding: 1.6rem;
+            margin-bottom: 2rem;
+            transition: all 0.2s;
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 1.5rem;
+            border-left: 5px solid #3b82f6;
+            padding-left: 1rem;
+        }
+
+        .card-header h2 {
+            margin: 0;
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        .badge {
+            background: #eef2ff;
+            color: #1e40af;
+            border-radius: 40px;
+            padding: 4px 12px;
+            font-size: 0.7rem;
+            font-weight: 500;
+        }
+
+        .two-columns {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.8rem;
+        }
+
+        @media (max-width: 780px) {
+            .two-columns {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+        }
+
+        .input-group {
+            margin-bottom: 1.3rem;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .input-group label {
+            font-weight: 700;
+            font-size: 0.9rem;
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .input-group input,
+        .input-group select {
+            padding: 12px 14px;
+            border: 1px solid #cbd5e1;
+            border-radius: 24px;
+            font-size: 1rem;
+            background: #ffffff;
+            transition: 0.2s;
+            font-family: inherit;
+        }
+
+        .input-group input:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+        }
+
+        .hint {
+            font-size: 0.7rem;
+            color: #5b6e8c;
+            margin-top: 6px;
+            background: #f8fafc;
+            padding: 6px 10px;
+            border-radius: 16px;
+            line-height: 1.4;
+        }
+
+        .result-area {
+            background: #f8fafc;
+            border-radius: 24px;
+            padding: 1.2rem;
+            margin-top: 1rem;
+        }
+
+        .result-row {
+            display: flex;
+            justify-content: space-between;
+            border-bottom: 1px dashed #e2e8f0;
+            padding: 10px 0;
+            font-size: 1rem;
+        }
+
+        .result-row:last-child {
+            border-bottom: none;
+        }
+
+        .result-label {
+            font-weight: 500;
+            color: #1e293b;
+        }
+
+        .result-value {
+            font-weight: 700;
+            font-family: monospace;
+            font-size: 1.1rem;
+        }
+
+        .highlight {
+            background: #dbeafe;
+            border-radius: 20px;
+            padding: 4px 12px;
+            color: #1e3a8a;
+        }
+
+        button {
+            background: #3b82f6;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 40px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: white;
+            cursor: pointer;
+            transition: 0.2s;
+            width: 100%;
+            margin-top: 12px;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+        }
+
+        button:hover {
+            background: #2563eb;
+            transform: translateY(-1px);
+        }
+
+        .info-note {
+            background: #e6f7ec;
+            border-left: 4px solid #10b981;
+            padding: 12px 16px;
+            border-radius: 20px;
+            margin-top: 1rem;
+            font-size: 0.8rem;
+        }
+
+        .refresh-tip {
+            text-align: right;
+            font-size: 0.7rem;
+            color: #3b82f6;
+            margin-top: 8px;
+            cursor: pointer;
+        }
+
+        .warning-text {
+            color: #b91c1c;
+            background: #fee2e2;
+            padding: 8px 14px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            margin-top: 12px;
+        }
+
+        .selector-row {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-bottom: 16px;
+        }
+
+        .index-selector {
+            background: #f1f5f9;
+            border-radius: 40px;
+            padding: 4px;
+            display: inline-flex;
+        }
+
+        .index-btn {
+            background: transparent;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 40px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.2s;
+            margin: 0;
+            width: auto;
+            font-size: 0.85rem;
+        }
+
+        .index-btn.active {
+            background: #3b82f6;
+            color: white;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+        }
+
+        .index-btn:not(.active):hover {
+            background: #e2e8f0;
+            transform: none;
+        }
+
+        .data-placeholder {
+            color: #94a3b8;
+            font-style: normal;
+        }
+        
+        .inline-code {
+            font-family: monospace;
+            background: #eef2ff;
+            padding: 2px 6px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1 style="font-size: 1.8rem; margin:0 0 6px 0;">📊 定投钝化辅助计算器</h1>
+    <p style="color: #475569;">多指数支持 · 智能补仓 + 年化收益率止盈策略</p>
+
+    <!-- 指数选择 + 实时数据卡片 (纯展示，失败留空) -->
+    <div class="card" style="padding: 1rem 1.6rem;">
+        <div class="selector-row">
+            <span style="font-weight: 600; margin-right: 8px;">选择指数：</span>
+            <div class="index-selector">
+                <button class="index-btn active" data-index="hs300">沪深300</button>
+                <button class="index-btn" data-index="cyb">创业板指</button>
+                <button class="index-btn" data-index="kc50">科创50</button>
+                <button class="index-btn" data-index="zz500">中证500</button>
+            </div>
+            <div class="refresh-tip" id="refreshDataBtn" style="margin-left: auto;">🔄 刷新数据（自动获取）</div>
+        </div>
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
+            <div><span style="font-weight: 700;" id="indexNameDisplay">📈 沪深300</span>
+                <span id="dataTimestamp" style="font-size:0.7rem; color:#5b6e8c; margin-left: 10px;"></span>
+            </div>
+        </div>
+        <div style="display: flex; gap: 1.5rem; flex-wrap: wrap; margin-top: 12px;">
+            <div><span style="color:#475569;">当前点位：</span><strong id="currentPrice">--</strong></div>
+            <div><span style="color:#475569;">近90日高点：</span><strong id="highPrice90">--</strong></div>
+            <div><span style="color:#475569;">从高点回撤：</span><strong id="drawdownAuto">--</strong></div>
+            <div><span style="color:#475569;">PE历史分位(估算)：</span><strong id="percentileAuto">--</strong></div>
+        </div>
+        <div class="hint" style="margin-top: 10px;">
+            💡 数据仅用于辅助参考，获取失败时请手动填写。补仓看「回撤幅度」，止盈看「年化收益率+估值分位」。
+        </div>
+    </div>
+
+    <div class="two-columns">
+        <!-- 左侧：手动补仓模块 -->
+        <div class="card">
+            <div class="card-header">
+                <div>💰</div>
+                <div><h2>📉 手动补仓 · 阶梯加码</h2></div>
+            </div>
+
+            <div class="input-group">
+                <label>📆 每月定投基准额 (元)</label>
+                <input type="number" id="monthlyBase" value="2000" step="500">
+                <div class="hint">你正常每月定投的金额（智能定投的基础值）</div>
+            </div>
+
+            <div class="input-group">
+                <label>📉 从近期高点回撤幅度 (%)</label>
+                <input type="number" id="drawdownInput" step="0.1" placeholder="可手动输入或自动获取" value="">
+                <div class="hint">
+                    ✅ 点击上方「刷新数据」可尝试自动获取回撤，也可手动填入。<br>
+                    🔍 回撤 = (近90日最高价 - 当前价) / 近90日最高价 × 100%
+                </div>
+            </div>
+
+            <div class="input-group">
+                <label>⚙️ 补仓倍率规则（回撤越大倍数越高）</label>
+                <select id="ruleSelect">
+                    <option value="strict">📐 标准：回撤5~10%→0.5倍 │ 10~20%→1倍 │ 20~30%→2倍 │ >30%→3倍</option>
+                    <option value="aggressive">⚡ 激进：回撤5%→0.8倍 │ 10%→1.5倍 │ 20%→3倍 │ >30%→5倍</option>
+                    <option value="conservative">🛡️ 保守：回撤8%→0.3倍 │ 15%→0.7倍 │ 25%→1.2倍 │ >35%→2倍</option>
+                </select>
+            </div>
+
+            <div class="input-group">
+                <label>✏️ 自定义倍数 (留空则用规则)</label>
+                <input type="number" id="customMultiplier" step="0.1" placeholder="例如 1.5">
+            </div>
+
+            <div class="input-group">
+                <label>🛡️ 手动补仓总额上限 (元)</label>
+                <input type="number" id="maxManualCap" value="12000" step="2000">
+                <div class="hint">建议占总计划资金的20%以内</div>
+            </div>
+
+            <div class="input-group">
+                <label>📋 已使用手动补仓额度 (元)</label>
+                <input type="number" id="usedManualAmount" value="3000" step="500">
+                <div class="hint">每次手动加仓后累加记录</div>
+            </div>
+
+            <button id="calcManualBtn">✨ 计算本次建议补仓金额</button>
+            <div id="manualResult" class="result-area">
+                <div class="result-row"><span class="result-label">📉 当前回撤幅度</span><span class="result-value" id="drawdownDisplay">--</span></div>
+                <div class="result-row"><span class="result-label">🎯 本次补仓倍数</span><span class="result-value" id="multiplierDisplay">--</span></div>
+                <div class="result-row"><span class="result-label">💰 建议补仓金额</span><span class="result-value" id="suggestAmount">-- 元</span></div>
+                <div class="result-row"><span class="result-label">⚠️ 剩余可用额度</span><span class="result-value" id="remainingCap">-- 元</span></div>
+                <div id="warningMsg"></div>
+            </div>
+            <div class="info-note">
+                💡 <strong>核心逻辑</strong>：只看市场从近期高点回撤幅度，回撤越大补仓倍数越高。
+            </div>
+        </div>
+
+        <!-- 右侧：止盈策略模块 (基于年化收益率) -->
+        <div class="card">
+            <div class="card-header">
+                <div>🎯</div>
+                <div><h2>📈 年化收益率止盈评估</h2></div>
+            </div>
+
+            <div class="input-group">
+                <label>⏱️ 已定投时长 (月)</label>
+                <input type="number" id="monthsInvested" value="24" step="1">
+                <div class="hint">从首次扣款至今的月数</div>
+            </div>
+
+            <div class="input-group">
+                <label>💰 当前持有总收益率 (%)</label>
+                <input type="number" id="holdingReturn" value="18" step="1" placeholder="例如 18 或 -5">
+                <div class="hint">
+                    总收益率 = (盈利 / 总本金) × 100%
+                </div>
+            </div>
+
+            <div class="input-group">
+                <label>📊 指数PE/PB历史分位 (%)</label>
+                <input type="number" id="percentileInput" step="1" placeholder="手动填写或自动获取">
+                <div class="hint">
+                    ✅ 可点击上方「刷新数据」自动获取估值分位（若成功），或自行查询填入。
+                </div>
+            </div>
+
+            <div class="input-group">
+                <label>🎯 年化止盈目标收益率 (%)</label>
+                <input type="number" id="targetAnnualReturn" value="12" step="1">
+                <div class="hint">例如12%表示年化12%，达到即考虑止盈（复利基准）</div>
+            </div>
+
+            <div class="input-group">
+                <label>📦 计划止盈比例 (%)</label>
+                <input type="number" id="takeProfitPercent" value="30" step="5">
+                <div class="hint">满足条件时卖出多少仓位（分批止盈）</div>
+            </div>
+
+            <button id="calcProfitBtn">🧠 评估年化止盈信号</button>
+            <div id="profitResult" class="result-area">
+                <div class="result-row"><span class="result-label">📅 定投时长</span><span class="result-value" id="durationDisplay">--</span></div>
+                <div class="result-row"><span class="result-label">📊 持有总收益率</span><span class="result-value" id="returnDisplay">--</span></div>
+                <div class="result-row"><span class="result-label">📈 折算年化收益率 (XIRR近似)</span><span class="result-value" id="annualizedReturnDisplay">--%</span></div>
+                <div class="result-row"><span class="result-label">📊 当前估值分位</span><span class="result-value" id="percentileDisplay">--</span></div>
+                <div class="result-row"><span class="result-label">⚡ 止盈决策</span><span class="result-value highlight" id="decisionMsg">--</span></div>
+                <div class="result-row"><span class="result-label">🎯 建议止盈仓位</span><span class="result-value" id="suggestSellPct">--</span></div>
+                <div id="extraAdvice"></div>
+            </div>
+            <div class="info-note">
+                💡 <strong>年化计算逻辑</strong>：基于总收益率和定投月数进行几何年化，贴合定投资金分批投入特征。<br>
+                ✅ <strong>止盈双因素</strong>：年化收益率 ≥ 目标年化收益 + 估值分位偏高(≥70%) 触发建议止盈。
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header"><div>🗺️</div><div><h2>📱 实操指南</h2></div></div>
+        <div style="display: flex; flex-wrap: wrap; gap: 1rem;">
+            <div style="flex:1">
+                <p><strong>1️⃣ 选指数</strong> → 点击上方对应指数（沪深300/创业板指/科创50/中证500）</p>
+                <p><strong>2️⃣ 补仓（左侧）</strong> → 自动/手动填入回撤 → 系统建议补仓金额</p>
+                <p><strong>3️⃣ 止盈（右侧）</strong> → 填写持有总收益率、定投月数、估值分位 → 查看年化止盈建议</p>
+            </div>
+            <div style="background:#eef2ff; border-radius: 24px; padding: 12px 20px;">
+                <span>✅ <strong>数据获取说明</strong><br>
+                • 点击「刷新数据」会尝试获取实时点位、90日高点、估值分位，<br>
+                • 若任一数据获取失败则该字段保持空白，可手动填写。<br>
+                • 不自动填充任何虚假占位值，确保真实可靠。
+                </span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ==================== 指数配置 ====================
+    const INDEX_CONFIG = {
+        hs300: { name: '沪深300', secid: '1.000300', peCode: '1.000300', peRange: { low: 10, high: 17 } },
+        cyb:   { name: '创业板指', secid: '0.399006', peCode: '0.399006', peRange: { low: 28, high: 58 } },
+        kc50:  { name: '科创50',  secid: '1.000688', peCode: '1.000688', peRange: { low: 35, high: 75 } },
+        zz500: { name: '中证500', secid: '1.000905', peCode: '1.000905', peRange: { low: 18, high: 32 } }
+    };
+    
+    let currentIndex = 'hs300';
+    // 存储最新获取的数据（仅用于界面展示，不作为强制默认值）
+    let fetchedPrice = null;
+    let fetchedHigh = null;
+    let fetchedDrawdown = null;
+    let fetchedPercentile = null;
+
+    // DOM 元素
+    const indexNameSpan = document.getElementById('indexNameDisplay');
+    const currentPriceSpan = document.getElementById('currentPrice');
+    const highPrice90Span = document.getElementById('highPrice90');
+    const drawdownAutoSpan = document.getElementById('drawdownAuto');
+    const percentileAutoSpan = document.getElementById('percentileAuto');
+    const drawdownInput = document.getElementById('drawdownInput');
+    const percentileInput = document.getElementById('percentileInput');
+    const refreshBtn = document.getElementById('refreshDataBtn');
+    const dataTimestampSpan = document.getElementById('dataTimestamp');
+    
+    // 补仓元素
+    const monthlyBaseInput = document.getElementById('monthlyBase');
+    const ruleSelect = document.getElementById('ruleSelect');
+    const customMultiplier = document.getElementById('customMultiplier');
+    const maxManualCap = document.getElementById('maxManualCap');
+    const usedManualAmount = document.getElementById('usedManualAmount');
+    const calcManualBtn = document.getElementById('calcManualBtn');
+    const drawdownDisplay = document.getElementById('drawdownDisplay');
+    const multiplierDisplay = document.getElementById('multiplierDisplay');
+    const suggestAmountSpan = document.getElementById('suggestAmount');
+    const remainingCapSpan = document.getElementById('remainingCap');
+    const warningMsgDiv = document.getElementById('warningMsg');
+    
+    // 止盈元素
+    const monthsInvested = document.getElementById('monthsInvested');
+    const holdingReturnInput = document.getElementById('holdingReturn');
+    const targetAnnualReturnInput = document.getElementById('targetAnnualReturn');
+    const takeProfitPercent = document.getElementById('takeProfitPercent');
+    const calcProfitBtn = document.getElementById('calcProfitBtn');
+    const durationDisplay = document.getElementById('durationDisplay');
+    const returnDisplay = document.getElementById('returnDisplay');
+    const annualizedReturnDisplaySpan = document.getElementById('annualizedReturnDisplay');
+    const percentileDisplaySpan = document.getElementById('percentileDisplay');
+    const decisionMsgSpan = document.getElementById('decisionMsg');
+    const suggestSellPctSpan = document.getElementById('suggestSellPct');
+    const extraAdviceDiv = document.getElementById('extraAdvice');
+
+    const indexBtns = document.querySelectorAll('.index-btn');
+    
+    // ========== 辅助函数 ==========
+    function getMultiplierByDrawdown(dd, ruleType) {
+        if (dd < 0) dd = 0;
+        if (ruleType === 'strict') {
+            if (dd >= 5 && dd < 10) return 0.5;
+            if (dd >= 10 && dd < 20) return 1.0;
+            if (dd >= 20 && dd < 30) return 2.0;
+            if (dd >= 30) return 3.0;
+            return 0;
+        } else if (ruleType === 'aggressive') {
+            if (dd >= 5 && dd < 10) return 0.8;
+            if (dd >= 10 && dd < 20) return 1.5;
+            if (dd >= 20 && dd < 30) return 3.0;
+            if (dd >= 30) return 5.0;
+            return 0;
+        } else if (ruleType === 'conservative') {
+            if (dd >= 8 && dd < 15) return 0.3;
+            if (dd >= 15 && dd < 25) return 0.7;
+            if (dd >= 25 && dd < 35) return 1.2;
+            if (dd >= 35) return 2.0;
+            return 0;
+        }
+        return 0;
+    }
+
+    // 计算年化收益率 (定投场景几何平均)
+    function calcAnnualizedReturn(totalReturnPercent, months) {
+        if (months <= 0) return 0;
+        let totalRet = totalReturnPercent / 100;
+        if (totalRet <= -1) return -100;
+        let geometricAnnual = Math.pow(1 + totalRet, 12 / months) - 1;
+        if (isNaN(geometricAnnual) || !isFinite(geometricAnnual)) return 0;
+        if (geometricAnnual > 2) geometricAnnual = 2;
+        if (geometricAnnual < -0.95) geometricAnnual = -0.95;
+        return geometricAnnual * 100;
+    }
+
+    function computeManual() {
+        let base = parseFloat(monthlyBaseInput.value);
+        let drawdown = parseFloat(drawdownInput.value);
+        let maxCap = parseFloat(maxManualCap.value);
+        let used = parseFloat(usedManualAmount.value);
+        let custom = customMultiplier.value.trim() === '' ? null : parseFloat(customMultiplier.value);
+
+        if (isNaN(base) || base <= 0) base = 2000;
+        if (isNaN(drawdown)) drawdown = 0;
+        if (isNaN(maxCap) || maxCap < 0) maxCap = 12000;
+        if (isNaN(used)) used = 0;
+
+        let multiplier = null;
+        if (custom !== null && !isNaN(custom)) {
+            multiplier = custom;
+        } else {
+            const rule = ruleSelect.value;
+            multiplier = getMultiplierByDrawdown(drawdown, rule);
+        }
+        if (multiplier === null || isNaN(multiplier)) multiplier = 0;
+
+        let suggestAmount = base * multiplier;
+        suggestAmount = Math.round(suggestAmount);
+        let remaining = maxCap - used;
+        let finalAmount = suggestAmount;
+        let warning = '';
+
+        if (remaining <= 0) {
+            finalAmount = 0;
+            warning = '⚠️ 已达手动补仓总额上限，请增加上限或停止。';
+        } else if (suggestAmount > remaining) {
+            finalAmount = remaining;
+            warning = `⚠️ 建议金额超剩余额度，已调整为 ${remaining} 元。`;
+        }
+
+        if (multiplier === 0 && drawdown > 0 && drawdown < 5) {
+            warning = '📉 当前回撤不足5%，未触发补仓，继续观察。';
+        }
+        if (drawdown === 0 && fetchedPrice && fetchedHigh && fetchedPrice >= fetchedHigh) {
+            warning = 'ℹ️ 当前价格未出现回撤或处于近期高点，暂不建议补仓。';
+        }
+
+        drawdownDisplay.innerText = drawdown.toFixed(2) + '%';
+        multiplierDisplay.innerText = multiplier.toFixed(2) + ' 倍';
+        suggestAmountSpan.innerText = finalAmount + ' 元';
+        remainingCapSpan.innerText = Math.max(0, remaining) + ' 元';
+        warningMsgDiv.innerHTML = warning ? `<div class="warning-text">${warning}</div>` : (finalAmount > 0 ? '<div style="color:#2b6e3c;">✅ 可按金额执行补仓</div>' : '');
+    }
+
+    function evaluateProfit() {
+        let months = parseFloat(monthsInvested.value);
+        let holdingRet = parseFloat(holdingReturnInput.value);
+        let percentile = parseFloat(percentileInput.value);
+        let targetAnnual = parseFloat(targetAnnualReturnInput.value);
+        let sellRatio = parseFloat(takeProfitPercent.value);
+
+        if (isNaN(months) || months <= 0) months = 1;
+        if (isNaN(holdingRet)) holdingRet = 0;
+        if (isNaN(percentile)) percentile = null;
+        if (isNaN(targetAnnual)) targetAnnual = 12;
+        if (isNaN(sellRatio)) sellRatio = 30;
+        
+        let annualRet = calcAnnualizedReturn(holdingRet, months);
+        
+        durationDisplay.innerText = `${months} 个月 (${(months/12).toFixed(1)}年)`;
+        returnDisplay.innerText = holdingRet + '%';
+        annualizedReturnDisplaySpan.innerText = annualRet.toFixed(2) + '%';
+        percentileDisplaySpan.innerText = (percentile !== null ? percentile + '%' : '--');
+        
+        let decision = '';
+        let sellPercent = 0;
+        let extraMsg = '';
+        
+        const annualAboveTarget = annualRet >= targetAnnual;
+        const highValuation = (percentile !== null && percentile >= 70);
+        const veryHighValuation = (percentile !== null && percentile >= 85);
+        const veryHighReturn = annualRet >= targetAnnual * 1.5;
+        
+        if (months >= 12) {
+            if (annualAboveTarget && (highValuation || veryHighReturn)) {
+                if (veryHighValuation && annualRet > targetAnnual) {
+                    decision = `🚨 估值偏高(${percentile}%) + 年化${annualRet.toFixed(1)}% ≥ ${targetAnnual}%，强烈止盈`;
+                    sellPercent = Math.min(sellRatio + 10, 50);
+                    extraMsg = `年化达标且估值高位，建议止盈${sellPercent}%锁定利润。`;
+                } else if (annualAboveTarget && highValuation) {
+                    decision = `🎯 触发止盈：年化 ${annualRet.toFixed(1)}% ≥ ${targetAnnual}% 且估值分位${percentile}%`;
+                    sellPercent = sellRatio;
+                    extraMsg = `执行分批止盈${sellPercent}%仓位。`;
+                } else if (veryHighReturn) {
+                    decision = `⚡ 年化收益大幅超越目标(${annualRet.toFixed(1)}% > ${targetAnnual}%)，建议部分止盈`;
+                    sellPercent = Math.min(sellRatio, 35);
+                    extraMsg = `止盈${sellPercent}%保留利润。`;
+                } else {
+                    decision = `⏸️ 年化达标但估值分位适中(${percentile !== null ? percentile+'%' : '未知'})，可继续持有`;
+                    sellPercent = 0;
+                    extraMsg = `估值合理，暂不止盈。`;
+                }
+            } else if (percentile !== null && percentile > 85 && annualRet > targetAnnual * 0.8) {
+                decision = `⚠️ 估值高位(${percentile}%)，年化接近目标，建议小仓位止盈`;
+                sellPercent = Math.min(sellRatio * 0.7, 20);
+                extraMsg = `止盈${sellPercent}%防御高估风险。`;
+            } else if (holdingRet <= -15 && months >= 24) {
+                decision = `⏳ 长期浮亏超过15%，审视标的，暂不止盈`;
+                sellPercent = 0;
+                extraMsg = `可结合补仓策略摊薄成本。`;
+            } else {
+                decision = `⏸️ 未达年化止盈条件 (年化${annualRet.toFixed(1)}% < ${targetAnnual}%)，继续定投`;
+                sellPercent = 0;
+                extraMsg = `估值分位 ${percentile !== null ? percentile+'%' : '--'}，耐心等待。`;
+            }
+        } else {
+            decision = `📌 定投时间较短（不足1年），暂不止盈，继续积累`;
+            sellPercent = 0;
+            extraMsg = `坚持定投，避免短期止盈。`;
+        }
+        
+        suggestSellPctSpan.innerText = sellPercent > 0 ? `卖出 ${sellPercent}% 仓位` : '暂不止盈 (0%)';
+        decisionMsgSpan.innerText = decision;
+        extraAdviceDiv.innerHTML = `<span>💡 ${extraMsg}</span>`;
+    }
+    
+    // 估值估算
+    function estimatePercentileByPe(pe, indexType) {
+        if (!pe || pe <= 0) return null;
+        const range = INDEX_CONFIG[indexType]?.peRange;
+        if (!range) return null;
+        let { low, high } = range;
+        if (pe <= low) return 12;
+        if (pe >= high) return 88;
+        let pct = 12 + (pe - low) / (high - low) * 76;
+        return Math.min(92, Math.max(8, Math.round(pct)));
+    }
+    
+    // 重置自动展示区域为空白（不显示占位）
+    function resetAutoFieldsToEmpty() {
+        currentPriceSpan.innerText = '--';
+        highPrice90Span.innerText = '--';
+        drawdownAutoSpan.innerText = '--';
+        percentileAutoSpan.innerText = '--';
+        // 注意：不清空手动输入框，避免干扰用户已填内容
+    }
+    
+    // 获取指数数据，仅成功才更新，失败则保留空白/原有手动值
+    async function fetchIndexData(indexKey) {
+        const cfg = INDEX_CONFIG[indexKey];
+        if (!cfg) return;
+        
+        // 先重置自动展示区域为原始空白
+        resetAutoFieldsToEmpty();
+        dataTimestampSpan.innerText = `请求中...`;
+        
+        let priceSuccess = false, highSuccess = false, peSuccess = false;
+        let newPrice = null, newHigh = null, newPe = null;
+        
+        try {
+            // 1. 实时行情
+            const realUrl = `https://push2.eastmoney.com/api/qt/stock/get?invt=2&fltt=1&fields=f43,f44,f45,f46,f47,f48,f50,f51,f52,f57,f58,f60,f107,f168,f169,f170,f86,f177&secid=${cfg.secid}`;
+            const realRes = await fetch(realUrl);
+            const realData = await realRes.json();
+            if (realData && realData.data && realData.data.f43) {
+                newPrice = realData.data.f43 / 100;
+                currentPriceSpan.innerText = newPrice.toFixed(2);
+                fetchedPrice = newPrice;
+                priceSuccess = true;
+            }
+        } catch (e) { console.warn("实时行情获取失败", e); }
+        
+        try {
+            // 2. K线数据
+            const klineUrl = `https://push2his.eastmoney.com/api/qt/stock/kline/get?secid=${cfg.secid}&fields1=f1,f2,f3,f4,f5&fields2=f51,f52,f53,f54,f55,f56,f57,f58&klt=101&fqt=1&end=20500101&lmt=120`;
+            const klineRes = await fetch(klineUrl);
+            const klineData = await klineRes.json();
+            if (klineData && klineData.data && klineData.data.klines) {
+                const klines = klineData.data.klines;
+                const closes = [];
+                for (let i = 0; i < klines.length; i++) {
+                    const parts = klines[i].split(',');
+                    const close = parseFloat(parts[2]);
+                    if (!isNaN(close)) closes.push(close);
+                }
+                const recent90 = closes.slice(-90);
+                if (recent90.length) {
+                    newHigh = Math.max(...recent90);
+                    highPrice90Span.innerText = newHigh.toFixed(2);
+                    fetchedHigh = newHigh;
+                    highSuccess = true;
+                    if (newPrice && newHigh) {
+                        let dd = ((newHigh - newPrice) / newHigh) * 100;
+                        dd = Math.max(0, Math.min(100, dd));
+                        drawdownAutoSpan.innerText = dd.toFixed(2) + '%';
+                        // 只有自动获取成功才回填到回撤输入框（便于补仓计算）
+                        drawdownInput.value = dd.toFixed(2);
+                        fetchedDrawdown = dd;
+                    } else if (newHigh && fetchedPrice) {
+                        // 以防万一
+                    }
+                }
+            }
+        } catch (e) { console.warn("K线获取失败", e); }
+        
+        try {
+            // 3. PE
+            const peUrl = `https://push2.eastmoney.com/api/qt/stock/get?invt=2&fltt=1&fields=f164,f166&secid=${cfg.secid}`;
+            const peRes = await fetch(peUrl);
+            const peData = await peRes.json();
+            if (peData && peData.data && peData.data.f166) {
+                let peTtm = peData.data.f166 / 100;
+                if (peTtm && peTtm > 0) {
+                    newPe = peTtm;
+                    let estPercentile = estimatePercentileByPe(peTtm, indexKey);
+                    if (estPercentile !== null) {
+                        percentileAutoSpan.innerText = estPercentile + '%';
+                        // 仅当成功获取PE分位时自动填入止盈模块的估值分位输入框
+                        percentileInput.value = estPercentile;
+                        fetchedPercentile = estPercentile;
+                    }
+                }
+            }
+        } catch (e) { console.warn("PE获取失败", e); }
+        
+        const nowTime = new Date().toLocaleTimeString();
+        if (priceSuccess || highSuccess || peSuccess) {
+            dataTimestampSpan.innerText = `更新: ${nowTime}`;
+        } else {
+            dataTimestampSpan.innerText = `获取失败，请手动填写`;
+        }
+        
+        // 触发界面重新计算
+        computeManual();
+        evaluateProfit();
+    }
+    
+    function switchIndex(indexKey) {
+        currentIndex = indexKey;
+        const cfg = INDEX_CONFIG[indexKey];
+        indexNameSpan.innerHTML = `📈 ${cfg.name}`;
+        indexBtns.forEach(btn => {
+            if (btn.getAttribute('data-index') === indexKey) btn.classList.add('active');
+            else btn.classList.remove('active');
+        });
+        // 重置自动展示区域为空白
+        resetAutoFieldsToEmpty();
+        // 不清空手动输入框，但尝试拉取新数据
+        fetchIndexData(indexKey);
+    }
+    
+    // 事件绑定
+    indexBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            const idx = btn.getAttribute('data-index');
+            if (idx) switchIndex(idx);
+        });
+    });
+    
+    refreshBtn.addEventListener('click', () => {
+        fetchIndexData(currentIndex);
+    });
+    
+    drawdownInput.addEventListener('input', computeManual);
+    monthlyBaseInput.addEventListener('input', computeManual);
+    ruleSelect.addEventListener('change', computeManual);
+    customMultiplier.addEventListener('input', computeManual);
+    maxManualCap.addEventListener('input', computeManual);
+    usedManualAmount.addEventListener('input', computeManual);
+    calcManualBtn.addEventListener('click', computeManual);
+    
+    monthsInvested.addEventListener('input', evaluateProfit);
+    holdingReturnInput.addEventListener('input', evaluateProfit);
+    percentileInput.addEventListener('input', evaluateProfit);
+    targetAnnualReturnInput.addEventListener('input', evaluateProfit);
+    takeProfitPercent.addEventListener('input', evaluateProfit);
+    calcProfitBtn.addEventListener('click', evaluateProfit);
+    
+    // 初始化：只拉取数据，但所有自动字段初始为空白，不填充占位
+    resetAutoFieldsToEmpty();
+    switchIndex('hs300');
+</script>
+</body>
+</html>
